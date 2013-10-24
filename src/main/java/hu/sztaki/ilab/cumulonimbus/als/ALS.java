@@ -3,8 +3,14 @@ package hu.sztaki.ilab.cumulonimbus.als;
 import eu.stratosphere.pact.client.LocalExecutor;
 import hu.sztaki.ilab.cumulonimbus.inputformat.MatrixElementInputFormat;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+
+import org.apache.log4j.FileAppender;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.apache.log4j.SimpleLayout;
 
 import eu.stratosphere.pact.common.contract.CoGroupContract;
 // import eu.stratosphere.pact.common.contract.Contract;
@@ -33,6 +39,10 @@ public class ALS implements PlanAssembler, PlanAssemblerDescription {
     int k = (args.length > 3 ? Integer.parseInt(args[3]) : 1);
     int iteration = (args.length > 4 ? Integer.parseInt(args[4]) : 1);
     
+    String logFile = output + "/progress.log";
+    Logger logger = getLogger(logFile);
+    logger.info("ALS.getPlan");
+    
     FileDataSource matrixSource = new FileDataSource(
         MatrixElementInputFormat.class, matrixInput, "Input Matrix");
     DelimitedInputFormat.configureDelimitedFormat(matrixSource)
@@ -44,6 +54,7 @@ public class ALS implements PlanAssembler, PlanAssemblerDescription {
         .name("Create q as a random matrix")
         .build();
     q.setParameter("k", k);
+    q.setParameter("logFile", logFile);
     
     Contract p = null;
     
@@ -63,6 +74,7 @@ public class ALS implements PlanAssembler, PlanAssemblerDescription {
           .name("For fixed q calculates optimal p")
           .build();
       p.setParameter("k", k);
+      p.setParameter("logFile", logFile);
       
       MatchContract multipliedP = MatchContract
           .builder(MultiplyVector.class, PactInteger.class, 0, 0)
@@ -78,6 +90,7 @@ public class ALS implements PlanAssembler, PlanAssemblerDescription {
           .name("For fixed p calculates optimal q")
           .build();
       q.setParameter("k", k);
+      q.setParameter("logFile", logFile);
 
     }
 
@@ -98,6 +111,8 @@ public class ALS implements PlanAssembler, PlanAssemblerDescription {
     for (int i = 0; i < k; ++i) {
       RecordOutputFormat.configureRecordFormat(qOut).field(PactDouble.class, i + 1);
     }
+    
+    
      
     Collection<GenericDataSink> outputs = new ArrayList<GenericDataSink>();
     outputs.add(pOut);
@@ -124,5 +139,22 @@ public class ALS implements PlanAssembler, PlanAssemblerDescription {
         System.out.println("runtime:  " + runtime);
         executor.stop();
   }
+  
+	public static Logger getLogger(String fileName) {
+		if (fileName == null) return null;
+		try {
+			Logger logger = Logger.getLogger(ALS.class);
+			// setting up a FileAppender dynamically...
+			SimpleLayout layout = new SimpleLayout();
+			FileAppender appender;
+			appender = new FileAppender(layout, fileName, false);
+			logger.addAppender(appender);
+
+			logger.setLevel(Level.DEBUG);
+			return logger;
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
 
 }

@@ -4,6 +4,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
+
 import eu.stratosphere.nephele.configuration.Configuration;
 import eu.stratosphere.pact.common.stubs.CoGroupStub;
 import eu.stratosphere.pact.common.stubs.Collector;
@@ -16,15 +18,18 @@ public class PIteration extends CoGroupStub {
   private static int k;
   private int id_;
   private final PactRecord result_ = new PactRecord();
+  private Logger logger = null;
   
   @Override
   public void open(Configuration conf) {
     k = conf.getInteger("k", 1);
+	  logger = ALS.getLogger(conf.getString("logFile", null));
   }
   
   @Override
   public void coGroup(Iterator<PactRecord> matrixElements, Iterator<PactRecord> q,
       Collector<PactRecord> out) {
+	  if (logger != null) logger.info("Started Q.coGroup()");
     double[][] matrix = new double[k][k];
     double[] vector = new double[k];
     
@@ -63,6 +68,7 @@ public class PIteration extends CoGroupStub {
     }
     result_.setField(0, new PactInteger(id_));
     out.collect(result_);
+    if (logger != null) logger.info("Finished P.coGroup()");
   }
   
   
