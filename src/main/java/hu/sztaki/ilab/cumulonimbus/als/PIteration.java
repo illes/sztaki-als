@@ -29,7 +29,7 @@ public class PIteration extends CoGroupStub {
   @Override
   public void coGroup(Iterator<PactRecord> matrixElements, Iterator<PactRecord> q,
       Collector<PactRecord> out) {
-	  if (logger != null) logger.info("Started Q.coGroup()");
+	  if (logger != null) logger.info("Started P.coGroup()");
     double[][] matrix = new double[k][k];
     double[] vector = new double[k];
     

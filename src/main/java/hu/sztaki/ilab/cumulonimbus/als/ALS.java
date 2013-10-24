@@ -9,8 +9,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 import org.apache.log4j.FileAppender;
+import org.apache.log4j.Layout;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.apache.log4j.PatternLayout;
 import org.apache.log4j.SimpleLayout;
 
 import com.sun.jndi.toolkit.url.Uri;
@@ -153,7 +155,7 @@ public class ALS implements PlanAssembler, PlanAssemblerDescription {
 		try {
 			Logger logger = Logger.getLogger(ALS.class);
 			// setting up a FileAppender dynamically...
-			SimpleLayout layout = new SimpleLayout();
+			Layout layout = new PatternLayout("%d{yy.MM.dd HH:mm:ss.SSS} %-6p [%t] %m%n");
 			FileAppender appender;
 			appender = new FileAppender(layout, fileName, false);
 			logger.addAppender(appender);
