@@ -42,7 +42,7 @@ public class DoubleReaderFinal implements ByteReader {
   
   @Override
   public void finish() {
-    double value = intValue + ((double) fracValue) * Math.pow(10, (-1 * (fracChars - 1)));
+    double value = intValue + (fracValue) * Math.pow(10, (-1 * (fracChars - 1)));
     result_.setValue(positive ? value : -value);
     record_.setField(index_, result_);
   }

@@ -35,6 +35,9 @@ import eu.stratosphere.pact.common.type.base.PactInteger;
 
 public class ALS implements PlanAssembler, PlanAssemblerDescription {
 
+  public static final String K = "k";
+  public static final String INDEX = "index";
+  
   @Override
   public Plan getPlan(String... args) {
     // parse job parameters
@@ -57,15 +60,33 @@ public class ALS implements PlanAssembler, PlanAssemblerDescription {
         MatrixElementInputFormat.class, matrixInput, "Input Matrix");
     DelimitedInputFormat.configureDelimitedFormat(matrixSource)
     .recordDelimiter('\n');
+    
+    //for reading q from file
+    String qInput = (args.length > 5 ? args[5] : "");
+    FileDataSource qSource = 
+        new FileDataSource(ColumnInputFormat.class, qInput, "Input Q");
+    DelimitedInputFormat.configureDelimitedFormat(qSource).recordDelimiter('\n');
+    
+    Contract q = (Contract) qSource;
 
+    //for creating the constant 1 matrix
+    //only works for k = 1
+/*    Contract q = ReduceContract
+        .builder(ConstantMatrix.class, PactInteger.class, 1)
+        .input(matrixSource)
+        .name("Create q as a constant 1 matrix")
+        .build();*/
+
+    /*
+    //for creating a random matrix
     Contract q = ReduceContract
         .builder(RandomMatrix.class, PactInteger.class, 1)
         .input(matrixSource)
         .name("Create q as a random matrix")
         .build();
-    q.setParameter("k", k);
+    q.setParameter(K, k);
     q.setParameter("logFile", logFile);
-    
+    */
     Contract p = null;
     
     for (int i = 0; i < iteration; ++i) {
@@ -76,6 +97,7 @@ public class ALS implements PlanAssembler, PlanAssemblerDescription {
           .input2(q)
           .name("Sends the columns of q with multiple keys)")
           .build();
+      multipliedQ.setParameter(INDEX, 1);
       
       p = CoGroupContract
           .builder(PIteration.class, PactInteger.class, 0, 0)
@@ -83,7 +105,7 @@ public class ALS implements PlanAssembler, PlanAssemblerDescription {
           .input2(multipliedQ)
           .name("For fixed q calculates optimal p")
           .build();
-      p.setParameter("k", k);
+      p.setParameter(K, k);
       p.setParameter("logFile", logFile);
       
       MatchContract multipliedP = MatchContract
@@ -92,6 +114,7 @@ public class ALS implements PlanAssembler, PlanAssemblerDescription {
           .input2(p)
           .name("sends the rows of p with multiple keys")
           .build();
+      multipliedP.setParameter(INDEX, 0);
 
       q = CoGroupContract
           .builder(QIteration.class, PactInteger.class, 1, 1)
@@ -99,7 +122,7 @@ public class ALS implements PlanAssembler, PlanAssemblerDescription {
           .input2(multipliedP)
           .name("For fixed p calculates optimal q")
           .build();
-      q.setParameter("k", k);
+      q.setParameter(K, k);
       q.setParameter("logFile", logFile);
 
     }

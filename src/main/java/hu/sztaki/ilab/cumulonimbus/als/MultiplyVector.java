@@ -15,8 +15,8 @@ public class MultiplyVector extends MatchStub {
     PactRecord output = new PactRecord();
     output.setField(0, matrixElement.getField(0, PactInteger.class));
     output.setField(1, matrixElement.getField(1, PactInteger.class));
-    for (int i = 1; i < columnOfQ.getNumFields(); ++i) {
-      output.setField(i + 1, columnOfQ.getField(i, PactDouble.class));
+    for (int i = 0; i < columnOfQ.getNumFields() - 1; ++i) {
+      output.setField(i + 2, columnOfQ.getField(i + 1, PactDouble.class));
     }
     out.collect(output);
   }
