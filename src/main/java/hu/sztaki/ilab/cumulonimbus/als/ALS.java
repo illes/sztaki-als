@@ -1,5 +1,6 @@
 package hu.sztaki.ilab.cumulonimbus.als;
 
+import eu.stratosphere.pact.client.LocalExecutor;
 import hu.sztaki.ilab.cumulonimbus.inputformat.MatrixElementInputFormat;
 
 import java.util.ArrayList;
@@ -113,5 +114,15 @@ public class ALS implements PlanAssembler, PlanAssemblerDescription {
     return "Parameters: [noSubStasks] [matrix] [output] [rank] [numberOfIterations]";
   }
 
+
+  public static void main(String[] args) throws Exception {
+        ALS als = new ALS();
+        Plan toExecute = als.getPlan(args);
+        LocalExecutor executor = new LocalExecutor();
+        executor.start();
+        long runtime = executor.executePlan(toExecute);
+        System.out.println("runtime:  " + runtime);
+        executor.stop();
+  }
 
 }
