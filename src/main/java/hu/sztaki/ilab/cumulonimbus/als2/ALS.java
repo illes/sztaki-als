@@ -28,132 +28,99 @@ import eu.stratosphere.pact.generic.contract.Contract;
 
 public class ALS implements PlanAssembler, PlanAssemblerDescription {
 
-public static final String K = "k";
-  public static final String INDEX = "index";
+	public static final String K = "k";
+	public static final String INDEX = "index";
 
-  public static final Logger logger = Logger.getLogger("ALS");
+	public static final Logger logger = Logger.getLogger("ALS");
 
-  
-  @Override
-  public Plan getPlan(String... args) {
-    // parse job parameters
-    int noSubTasks = (args.length > 0 ? Integer.parseInt(args[0]) : 1);
-    String matrixInput = (args.length > 1 ? args[1] : "");
-    String output = (args.length > 2 ? args[2] : "");
-    int k = (args.length > 3 ? Integer.parseInt(args[3]) : 1);
-    int iteration = (args.length > 4 ? Integer.parseInt(args[4]) : 1);
-    
-    logger.info("ALS.getPlan");
-    
-    FileDataSource matrixSource = new FileDataSource(
-        MatrixElementInputFormat.class, matrixInput, "Input Matrix");
-    DelimitedInputFormat.configureDelimitedFormat(matrixSource)
-    .recordDelimiter('\n');
-    
-    //for reading q from file
-    int qSeed = (args.length > 5 ? Integer.parseInt(args[5]) : 42);
-    
-/*    Contract q = (Contract) qSource;
+	@Override
+	public Plan getPlan(String... args) {
+		// parse job parameters
+		int noSubTasks = (args.length > 0 ? Integer.parseInt(args[0]) : 1);
+		String matrixInput = (args.length > 1 ? args[1] : "");
+		String output = (args.length > 2 ? args[2] : "");
+		int k = (args.length > 3 ? Integer.parseInt(args[3]) : 1);
+		int iteration = (args.length > 4 ? Integer.parseInt(args[4]) : 1);
 
-    //for creating the constant 1 matrix
-    //only works for k = 1
-/*    Contract q = ReduceContract
-        .builder(ConstantMatrix.class, PactInteger.class, 1)
-        .input(matrixSource)
-        .name("Create q as a constant 1 matrix")
-        .build();*/
+		logger.info("ALS.getPlan");
 
-    //for creating a random matrix
-    Contract q = ReduceContract
-        .builder(PseudoRandomMatrix.class, PactInteger.class, 1)
-        .input(matrixSource)
-        .name("Create q as a random matrix")
-        .build();
-    q.setParameter(K, k);
-    q.setParameter("seed", qSeed);
-    
+		FileDataSource matrixSource = new FileDataSource(MatrixElementInputFormat.class, matrixInput, "Input Matrix");
+		DelimitedInputFormat.configureDelimitedFormat(matrixSource).recordDelimiter('\n');
 
-    Contract p = null;
-    
-    for (int i = 0; i < iteration; ++i) {
+		// for reading q from file
+		int qSeed = (args.length > 5 ? Integer.parseInt(args[5]) : 42);
 
-      MatchContract multipliedQ = MatchContract
-          .builder(MultiplyVector.class, PactInteger.class, 1, 0)
-          .input1(matrixSource)
-          .input2(q)
-          .name("Sends the columns of q with multiple keys)")
-          .build();
-      multipliedQ.setParameter(INDEX, 1);
-      
-      p = CoGroupContract
-          .builder(PIteration.class, PactInteger.class, 0, 0)
-          .input1(matrixSource)
-          .input2(multipliedQ)
-          .name("For fixed q calculates optimal p")
-          .build();
-      p.setParameter(K, k);
-      
-      MatchContract multipliedP = MatchContract
-          .builder(MultiplyVector.class, PactInteger.class, 0, 0)
-          .input1(matrixSource)
-          .input2(p)
-          .name("sends the rows of p with multiple keys")
-          .build();
-      multipliedP.setParameter(INDEX, 0);
+		/*
+		 * Contract q = (Contract) qSource;
+		 * 
+		 * //for creating the constant 1 matrix //only works for k = 1 /* Contract q =
+		 * ReduceContract .builder(ConstantMatrix.class, PactInteger.class, 1) .input(matrixSource)
+		 * .name("Create q as a constant 1 matrix") .build();
+		 */
 
-      q = CoGroupContract
-          .builder(QIteration.class, PactInteger.class, 1, 1)
-          .input1(matrixSource)
-          .input2(multipliedP)
-          .name("For fixed p calculates optimal q")
-          .build();
-      q.setParameter(K, k);
+		// for creating a random matrix
+		Contract q = ReduceContract.builder(PseudoRandomMatrix.class, PactInteger.class, 1).input(matrixSource).name("Create q as a random matrix").build();
+		q.setParameter(K, k);
+		q.setParameter("seed", qSeed);
 
-    }
+		Contract p = null;
 
-    FileDataSink pOut = new FileDataSink(RecordOutputFormat.class, output + "/p",
-        p, "ALS P output");
-    RecordOutputFormat.configureRecordFormat(pOut).recordDelimiter('\n')
-    .fieldDelimiter(' ').lenient(true).field(PactInteger.class, 0);
-   
-    for (int i = 0; i < k; ++i) {
-      RecordOutputFormat.configureRecordFormat(pOut).field(PactDouble.class, i + 1);
-    }
-    
-    FileDataSink qOut = new FileDataSink(RecordOutputFormat.class, output + "/q",
-        q, "ALS Q output");
-    RecordOutputFormat.configureRecordFormat(qOut).recordDelimiter('\n')
-    .fieldDelimiter(' ').lenient(true).field(PactInteger.class, 0);
-   
-    for (int i = 0; i < k; ++i) {
-      RecordOutputFormat.configureRecordFormat(qOut).field(PactDouble.class, i + 1);
-    }
-    
-    
-     
-    Collection<GenericDataSink> outputs = new ArrayList<GenericDataSink>();
-    outputs.add(pOut);
-    outputs.add(qOut);
-    
-    Plan plan = new Plan(outputs, "ALS");
-    plan.setDefaultParallelism(noSubTasks);
-    return plan;
-  }
+		FileDataSink pOut = null;
+		Collection<GenericDataSink> outputs = new ArrayList<GenericDataSink>();
+		for (int i = 0; i < iteration; ++i) {
 
+			MatchContract multipliedQ = MatchContract.builder(MultiplyVector.class, PactInteger.class, 1, 0).input1(matrixSource).input2(q)
+					.name("Sends the columns of q with multiple keys)").build();
+			multipliedQ.setParameter(INDEX, 1);
 
-  @Override
-  public String getDescription() {
-    return "Parameters: [noSubStasks] [matrix] [output] [rank] [numberOfIterations] [seed]";
-  }
+			p = CoGroupContract.builder(PIteration.class, PactInteger.class, 0, 0).input1(matrixSource).input2(multipliedQ)
+					.name("For fixed q calculates optimal p").build();
+			p.setParameter(K, k);
 
+			outputs.add(createFileDataSink(output + "/p." + i, p, "ALS P output " + i, k));
 
-  public static void main(String[] args) throws Exception {
-        ALS als = new ALS();
-        Plan toExecute = als.getPlan(args);
-        LocalExecutor executor = new LocalExecutor();
-        executor.start();
-        long runtime = executor.executePlan(toExecute);
-        System.out.println("runtime:  " + runtime);
-        executor.stop();
-  }
+			MatchContract multipliedP = MatchContract.builder(MultiplyVector.class, PactInteger.class, 0, 0).input1(matrixSource).input2(p)
+					.name("sends the rows of p with multiple keys").build();
+			multipliedP.setParameter(INDEX, 0);
+
+			q = CoGroupContract.builder(QIteration.class, PactInteger.class, 1, 1).input1(matrixSource).input2(multipliedP)
+					.name("For fixed p calculates optimal q").build();
+			q.setParameter(K, k);
+
+			outputs.add(createFileDataSink(output + "/q." + i, q, "ALS Q output " + i, k));
+		}
+
+		outputs.add(createFileDataSink(output + "/p", p, "ALS P output", k));
+		outputs.add(createFileDataSink(output + "/q", q, "ALS Q output", k));
+
+		Plan plan = new Plan(outputs, "ALS");
+		plan.setDefaultParallelism(noSubTasks);
+		return plan;
+	}
+
+	@Override
+	public String getDescription() {
+		return "Parameters: [noSubStasks] [matrix] [output] [rank] [numberOfIterations] [seed]";
+	}
+
+	public static void main(String[] args) throws Exception {
+		ALS als = new ALS();
+		Plan toExecute = als.getPlan(args);
+		LocalExecutor executor = new LocalExecutor();
+		executor.start();
+		long runtime = executor.executePlan(toExecute);
+		System.out.println("runtime:  " + runtime);
+		executor.stop();
+	}
+
+	private FileDataSink createFileDataSink(String filePath, Contract input, String name, int k) {
+		FileDataSink out = new FileDataSink(RecordOutputFormat.class, filePath, input, name);
+		RecordOutputFormat.configureRecordFormat(out).recordDelimiter('\n').fieldDelimiter(' ').lenient(true).field(PactInteger.class, 0);
+
+		for (int j = 0; j < k; ++j) {
+			RecordOutputFormat.configureRecordFormat(out).field(PactDouble.class, j + 1);
+		}
+		
+		return out;
+	}
 }
