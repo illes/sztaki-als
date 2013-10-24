@@ -59,7 +59,7 @@
         <configuration>
           <archive>
             <manifestEntries>
-              <Pact-Assembler-Class>hu.sztaki.ilab.cumulonimbus.als.ALS</Pact-Assembler-Class>
+              <Pact-Assembler-Class>hu.sztaki.ilab.cumulonimbus.als2.ALS</Pact-Assembler-Class>
             </manifestEntries>
           </archive>
         </configuration>
@@ -82,7 +82,7 @@
                 </descriptors>
                 <archive>
                     <manifestEntries>
-                        <Pact-Assembler-Class>hu.sztaki.ilab.cumulonimbus.als.ALS</Pact-Assembler-Class>
+                        <Pact-Assembler-Class>hu.sztaki.ilab.cumulonimbus.als2.ALS</Pact-Assembler-Class>
                     </manifestEntries>
                     <manifest>
                             <addClasspath>true</addClasspath>
