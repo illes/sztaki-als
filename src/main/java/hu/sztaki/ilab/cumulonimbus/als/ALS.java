@@ -1,5 +1,6 @@
 package hu.sztaki.ilab.cumulonimbus.als;
 
+import hu.sztaki.ilab.cumulonimbus.inputformat.ColumnInputFormat;
 import eu.stratosphere.pact.client.LocalExecutor;
 import hu.sztaki.ilab.cumulonimbus.inputformat.MatrixElementInputFormat;
 
