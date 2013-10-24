@@ -16,7 +16,8 @@ import eu.stratosphere.pact.common.type.base.PactString;
  */
 public class MultWithTransp extends MapStub {
 
-	// initialize reusable mutable objects
+    public static final String FIXKEY = "SUM-QQT";
+    // initialize reusable mutable objects
 	private final PactRecord outputRecord = new PactRecord();
 	private PactString emittedKey;
     private int k;
@@ -25,7 +26,7 @@ public class MultWithTransp extends MapStub {
 	@Override
 	public void open(Configuration parameters) throws Exception {
 		super.open(parameters);
-		emittedKey = new PactString(parameters.getString("emittedKey", "SUM-QQT"));
+		emittedKey = new PactString(parameters.getString("emittedKey", FIXKEY));
         k = parameters.getInteger(ALS.K, 1);
 	}
 
