@@ -24,7 +24,7 @@ public class QIteration extends CoGroupStub {
   @Override
   public void open(Configuration conf) {
     k = conf.getInteger(ALS.K, 1);
-	  logger = ALS.getLogger(conf.getString("logFile", null));
+	  logger = ALS.logger;
   }
   
   @Override

@@ -36,8 +36,10 @@ import eu.stratosphere.pact.common.type.base.PactInteger;
 
 public class ALS implements PlanAssembler, PlanAssemblerDescription {
 
-  public static final String K = "k";
+public static final String K = "k";
   public static final String INDEX = "index";
+  public static final String LOG_FILE = "logFile";
+  public static Logger logger = Logger.getLogger(ALS.class);
   
   @Override
   public Plan getPlan(String... args) {
@@ -54,7 +56,7 @@ public class ALS implements PlanAssembler, PlanAssemblerDescription {
 	} catch (MalformedURLException e) {
 		logFile = null;
 	}
-    Logger logger = getLogger(logFile);
+    logger = getLogger(logFile);
     logger.info("ALS.getPlan");
     
     FileDataSource matrixSource = new FileDataSource(
@@ -107,7 +109,7 @@ public class ALS implements PlanAssembler, PlanAssemblerDescription {
           .name("For fixed q calculates optimal p")
           .build();
       p.setParameter(K, k);
-      p.setParameter("logFile", logFile);
+//      p.setParameter(LOG_FILE, logFile);
       
       MatchContract multipliedP = MatchContract
           .builder(MultiplyVector.class, PactInteger.class, 0, 0)
@@ -124,7 +126,7 @@ public class ALS implements PlanAssembler, PlanAssemblerDescription {
           .name("For fixed p calculates optimal q")
           .build();
       q.setParameter(K, k);
-      q.setParameter("logFile", logFile);
+//      q.setParameter(LOG_FILE, logFile);
 
     }
 
@@ -175,16 +177,16 @@ public class ALS implements PlanAssembler, PlanAssemblerDescription {
   }
   
 	public static Logger getLogger(String fileName) {
-		if (fileName == null) return null;
 		try {
 			Logger logger = Logger.getLogger(ALS.class);
 			// setting up a FileAppender dynamically...
-			Layout layout = new PatternLayout("%d{yy.MM.dd HH:mm:ss.SSS} %-6p [%t] %m%n");
+			Layout layout = new PatternLayout(PatternLayout.TTCC_CONVERSION_PATTERN);//"%d{yy.MM.dd HH:mm:ss.SSS} %-6p [%t] %m%n");
 			FileAppender appender;
 			appender = new FileAppender(layout, fileName, false);
 			logger.addAppender(appender);
 
 			logger.setLevel(Level.DEBUG);
+			logger.setAdditivity(false);
 			return logger;
 		} catch (IOException e) {
 			throw new RuntimeException(e);
