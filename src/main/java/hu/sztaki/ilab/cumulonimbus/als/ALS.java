@@ -6,6 +6,8 @@ import hu.sztaki.ilab.cumulonimbus.inputformat.MatrixElementInputFormat;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 
@@ -16,7 +18,6 @@ import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
 import org.apache.log4j.SimpleLayout;
 
-import com.sun.jndi.toolkit.url.Uri;
 
 import eu.stratosphere.pact.common.contract.CoGroupContract;
 // import eu.stratosphere.pact.common.contract.Contract;
@@ -39,7 +40,7 @@ public class ALS implements PlanAssembler, PlanAssemblerDescription {
 public static final String K = "k";
   public static final String INDEX = "index";
   public static final String LOG_FILE = "logFile";
-  public static Logger logger = Logger.getLogger(ALS.class);
+  public static Logger logger = Logger.getLogger("ALS");
   
   @Override
   public Plan getPlan(String... args) {
@@ -52,11 +53,10 @@ public static final String K = "k";
     
     String logFile;
 	try {
-		logFile = new Uri(output + "/progress.log").getPath();
-	} catch (MalformedURLException e) {
+		logFile = new URI(output + "/progress.log").getPath();
+	} catch (URISyntaxException e) {
 		logFile = null;
 	}
-    logger = getLogger(logFile);
     logger.info("ALS.getPlan");
     
     FileDataSource matrixSource = new FileDataSource(
@@ -175,22 +175,5 @@ public static final String K = "k";
         System.out.println("runtime:  " + runtime);
         executor.stop();
   }
-  
-	public static Logger getLogger(String fileName) {
-		try {
-			Logger logger = Logger.getLogger(ALS.class);
-			// setting up a FileAppender dynamically...
-			Layout layout = new PatternLayout(PatternLayout.TTCC_CONVERSION_PATTERN);//"%d{yy.MM.dd HH:mm:ss.SSS} %-6p [%t] %m%n");
-			FileAppender appender;
-			appender = new FileAppender(layout, fileName, false);
-			logger.addAppender(appender);
-
-			logger.setLevel(Level.DEBUG);
-			logger.setAdditivity(false);
-			return logger;
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-	}
 
 }

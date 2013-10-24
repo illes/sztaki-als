@@ -6,6 +6,7 @@ import hu.sztaki.ilab.cumulonimbus.als.QIteration;
 import hu.sztaki.ilab.cumulonimbus.inputformat.ColumnInputFormat;
 import eu.stratosphere.pact.client.LocalExecutor;
 import hu.sztaki.ilab.cumulonimbus.inputformat.MatrixElementInputFormat;
+import hu.sztaki.ilab.cumulonimbus.util.LoggingHelper;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -41,7 +42,6 @@ public class ALS implements PlanAssembler, PlanAssemblerDescription {
 public static final String K = "k";
   public static final String INDEX = "index";
   public static final String LOG_FILE = "logFile";
-  public static Logger logger = Logger.getLogger(ALS.class);
   
   @Override
   public Plan getPlan(String... args) {
@@ -58,7 +58,7 @@ public static final String K = "k";
 	} catch (MalformedURLException e) {
 		logFile = null;
 	}
-    logger = getLogger(logFile);
+    Logger logger = LoggingHelper.getFileLogger("ALS", logFile);
     logger.info("ALS.getPlan");
     
     FileDataSource matrixSource = new FileDataSource(
@@ -87,6 +87,8 @@ public static final String K = "k";
         .build();
     q.setParameter(K, k);
     q.setParameter("seed", qSeed);
+    q.setParameter(LOG_FILE, logFile);
+    
 
     Contract p = null;
     
@@ -107,7 +109,7 @@ public static final String K = "k";
           .name("For fixed q calculates optimal p")
           .build();
       p.setParameter(K, k);
-//      p.setParameter(LOG_FILE, logFile);
+      p.setParameter(LOG_FILE, logFile);
       
       MatchContract multipliedP = MatchContract
           .builder(MultiplyVector.class, PactInteger.class, 0, 0)
@@ -124,7 +126,7 @@ public static final String K = "k";
           .name("For fixed p calculates optimal q")
           .build();
       q.setParameter(K, k);
-//      q.setParameter(LOG_FILE, logFile);
+      q.setParameter(LOG_FILE, logFile);
 
     }
 
@@ -173,22 +175,4 @@ public static final String K = "k";
         System.out.println("runtime:  " + runtime);
         executor.stop();
   }
-  
-	public static Logger getLogger(String fileName) {
-		try {
-			Logger logger = Logger.getLogger(ALS.class);
-			// setting up a FileAppender dynamically...
-			Layout layout = new PatternLayout(PatternLayout.TTCC_CONVERSION_PATTERN);//"%d{yy.MM.dd HH:mm:ss.SSS} %-6p [%t] %m%n");
-			FileAppender appender;
-			appender = new FileAppender(layout, fileName, false);
-			logger.addAppender(appender);
-
-			logger.setLevel(Level.DEBUG);
-			logger.setAdditivity(false);
-			return logger;
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-	}
-
 }

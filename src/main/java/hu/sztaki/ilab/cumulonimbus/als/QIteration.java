@@ -4,6 +4,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
+import hu.sztaki.ilab.cumulonimbus.util.LoggingHelper;
+
 import Jama.Matrix;
 import org.apache.log4j.Logger;
 
@@ -19,12 +21,12 @@ public class QIteration extends CoGroupStub {
   private static int k;
   private int id_;
   private final PactRecord result_ = new PactRecord();
-  private Logger logger = null;
+  private static Logger logger = null;
   
   @Override
   public void open(Configuration conf) {
     k = conf.getInteger(ALS.K, 1);
-	  logger = ALS.logger;
+    logger = LoggingHelper.getFileLogger("ALS", conf.getString(ALS.LOG_FILE, null));
   }
   
   @Override
@@ -54,6 +56,9 @@ public class QIteration extends CoGroupStub {
         vector[i][0] += rating * row.getField(i + 2, PactDouble.class).getValue();
       }
     }
+
+    // poor man's regularization
+    for (int i = 0; i < k; ++i) matrix[i][i] += 1e-6;
     
     Matrix a = new Matrix(matrix);
     Matrix b = new Matrix(vector);
