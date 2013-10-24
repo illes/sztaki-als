@@ -1,12 +1,11 @@
 package hu.sztaki.ilab.cumulonimbus.als;
 
+import Jama.Matrix;
+
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-import hu.sztaki.ilab.cumulonimbus.util.LoggingHelper;
-
-import Jama.Matrix;
 import org.apache.log4j.Logger;
 
 import eu.stratosphere.nephele.configuration.Configuration;
@@ -26,12 +25,12 @@ public class PIteration extends CoGroupStub {
   @Override
   public void open(Configuration conf) {
     k = conf.getInteger(ALS.K, 1);
+    if (logger != null) logger.info("Opening P");
   }
   
   @Override
   public void coGroup(Iterator<PactRecord> matrixElements, Iterator<PactRecord> q,
       Collector<PactRecord> out) {
-	  if (logger != null) logger.info("Started P.coGroup()");
     double[][] matrix = new double[k][k]; // A = X^T * X + lamba * E
     double[][] vector = new double[k][1]; // b = X^T * y
     double yTy = 0;
@@ -75,7 +74,6 @@ public class PIteration extends CoGroupStub {
     }
 
     out.collect(result_);
-    if (logger != null) logger.info("Finished P.coGroup()");
   }
  
 }
