@@ -73,6 +73,31 @@
           <target>1.6</target>
         </configuration>
       </plugin>
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-assembly-plugin</artifactId>
+            <configuration>
+                <descriptors>
+                    <descriptor>src/assembly/uberjar.xml</descriptor>
+                </descriptors>
+                <archive>
+                    <manifestEntries>
+                        <Pact-Assembler-Class>hu.sztaki.ilab.cumulonimbus.als.ALS</Pact-Assembler-Class>
+                    </manifestEntries>
+                    <manifest>
+                            <addClasspath>true</addClasspath>
+                    </manifest>
+                </archive>
+            </configuration>
+            <executions>
+              <execution>
+                <phase>package</phase>
+                <goals>
+                  <goal>single</goal>
+                </goals>
+              </execution>
+            </executions>
+        </plugin>
     </plugins>
   </build>
 </project>
