@@ -40,6 +40,11 @@
       <artifactId>pact-clients</artifactId>
       <version>0.4-SNAPSHOT</version>
     </dependency>
+    <dependency>
+          <groupId>gov.nist.math.jama</groupId>
+          <artifactId>gov.nist.math.jama</artifactId>
+          <version>1.1.1</version>
+      </dependency>
   </dependencies>
 
   <!--  We use the maven-jar-plugin to generate a runnable jar that you can
