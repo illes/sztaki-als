@@ -4,6 +4,7 @@ import eu.stratosphere.pact.client.LocalExecutor;
 import hu.sztaki.ilab.cumulonimbus.inputformat.MatrixElementInputFormat;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.Collection;
 
@@ -11,6 +12,8 @@ import org.apache.log4j.FileAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.SimpleLayout;
+
+import com.sun.jndi.toolkit.url.Uri;
 
 import eu.stratosphere.pact.common.contract.CoGroupContract;
 // import eu.stratosphere.pact.common.contract.Contract;
@@ -39,7 +42,12 @@ public class ALS implements PlanAssembler, PlanAssemblerDescription {
     int k = (args.length > 3 ? Integer.parseInt(args[3]) : 1);
     int iteration = (args.length > 4 ? Integer.parseInt(args[4]) : 1);
     
-    String logFile = output + "/progress.log";
+    String logFile;
+	try {
+		logFile = new Uri(output + "/progress.log").getPath();
+	} catch (MalformedURLException e) {
+		logFile = null;
+	}
     Logger logger = getLogger(logFile);
     logger.info("ALS.getPlan");
     
