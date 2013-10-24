@@ -21,12 +21,11 @@ public class QIteration extends CoGroupStub {
   private static int k;
   private int id_;
   private final PactRecord result_ = new PactRecord();
-  private static Logger logger = null;
+  private static Logger logger = Logger.getLogger(QIteration.class);
   
   @Override
   public void open(Configuration conf) {
     k = conf.getInteger(ALS.K, 1);
-    logger = LoggingHelper.getFileLogger("ALS", conf.getString(ALS.LOG_FILE, null));
   }
   
   @Override
@@ -35,6 +34,7 @@ public class QIteration extends CoGroupStub {
 	  if (logger != null) logger.info("Started Q.coGroup()");
     double[][] matrix = new double[k][k];
     double[][] vector = new double[k][1];
+    double yTy = 0;
     
     Map<Integer, Double> ratings = new HashMap<Integer, Double>();
     while (matrixElements.hasNext()) {
@@ -55,19 +55,25 @@ public class QIteration extends CoGroupStub {
         }
         vector[i][0] += rating * row.getField(i + 2, PactDouble.class).getValue();
       }
+      
+      for (int i = 0; i < k; i++) yTy += rating * rating;
     }
 
     // poor man's regularization
     for (int i = 0; i < k; ++i) matrix[i][i] += 1e-6;
     
-    Matrix a = new Matrix(matrix);
-    Matrix b = new Matrix(vector);
+    Matrix a = new Matrix(matrix); // X^T * x + lambda * E
+    Matrix b = new Matrix(vector); // X^T * y
     Matrix result = a.solve(b);
     
+//  double errorSquare = result.transpose().times(a.times(result)).get(0, 0) - 2* result.transpose().times(b).get(0, 0) + yTy; // wT * A * w  - 2 * wT * b + yT*y
+    
+    result_.setField(0, new PactInteger(id_));
+//  result_.setField(1, new PactDouble(errorSquare));
     for (int i = 0; i < k; ++i) {
       result_.setField(i + 1, new PactDouble(result.get(i, 0)));
     }
-    result_.setField(0, new PactInteger(id_));
+
     out.collect(result_);
     if (logger != null) logger.info("Finished Q.coGroup()");
   }

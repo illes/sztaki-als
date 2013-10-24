@@ -1,29 +1,17 @@
 package hu.sztaki.ilab.cumulonimbus.als2;
 
-import hu.sztaki.ilab.cumulonimbus.als.MultiplyVector;
-import hu.sztaki.ilab.cumulonimbus.als.PIteration;
-import hu.sztaki.ilab.cumulonimbus.als.QIteration;
-import hu.sztaki.ilab.cumulonimbus.inputformat.ColumnInputFormat;
-import eu.stratosphere.pact.client.LocalExecutor;
-import hu.sztaki.ilab.cumulonimbus.inputformat.MatrixElementInputFormat;
-import hu.sztaki.ilab.cumulonimbus.util.LoggingHelper;
-
-import java.io.IOException;
-import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.Collection;
 
-import org.apache.log4j.FileAppender;
-import org.apache.log4j.Layout;
-import org.apache.log4j.Level;
+import hu.sztaki.ilab.cumulonimbus.als.MultiplyVector;
+import hu.sztaki.ilab.cumulonimbus.als.PIteration;
+import hu.sztaki.ilab.cumulonimbus.als.QIteration;
+import hu.sztaki.ilab.cumulonimbus.inputformat.MatrixElementInputFormat;
+
 import org.apache.log4j.Logger;
-import org.apache.log4j.PatternLayout;
 
-import com.sun.jndi.toolkit.url.Uri;
-
+import eu.stratosphere.pact.client.LocalExecutor;
 import eu.stratosphere.pact.common.contract.CoGroupContract;
-// import eu.stratosphere.pact.common.contract.Contract;
-import eu.stratosphere.pact.generic.contract.Contract;
 import eu.stratosphere.pact.common.contract.FileDataSink;
 import eu.stratosphere.pact.common.contract.FileDataSource;
 import eu.stratosphere.pact.common.contract.GenericDataSink;
@@ -36,12 +24,15 @@ import eu.stratosphere.pact.common.plan.PlanAssembler;
 import eu.stratosphere.pact.common.plan.PlanAssemblerDescription;
 import eu.stratosphere.pact.common.type.base.PactDouble;
 import eu.stratosphere.pact.common.type.base.PactInteger;
+import eu.stratosphere.pact.generic.contract.Contract;
 
 public class ALS implements PlanAssembler, PlanAssemblerDescription {
 
 public static final String K = "k";
   public static final String INDEX = "index";
-  public static final String LOG_FILE = "logFile";
+
+  public static final Logger logger = Logger.getLogger("ALS");
+
   
   @Override
   public Plan getPlan(String... args) {
@@ -52,13 +43,6 @@ public static final String K = "k";
     int k = (args.length > 3 ? Integer.parseInt(args[3]) : 1);
     int iteration = (args.length > 4 ? Integer.parseInt(args[4]) : 1);
     
-    String logFile;
-	try {
-		logFile = new Uri(output + "/progress.log").getPath();
-	} catch (MalformedURLException e) {
-		logFile = null;
-	}
-    Logger logger = LoggingHelper.getFileLogger("ALS", logFile);
     logger.info("ALS.getPlan");
     
     FileDataSource matrixSource = new FileDataSource(
@@ -87,7 +71,6 @@ public static final String K = "k";
         .build();
     q.setParameter(K, k);
     q.setParameter("seed", qSeed);
-    q.setParameter(LOG_FILE, logFile);
     
 
     Contract p = null;
@@ -109,7 +92,6 @@ public static final String K = "k";
           .name("For fixed q calculates optimal p")
           .build();
       p.setParameter(K, k);
-      p.setParameter(LOG_FILE, logFile);
       
       MatchContract multipliedP = MatchContract
           .builder(MultiplyVector.class, PactInteger.class, 0, 0)
@@ -126,7 +108,6 @@ public static final String K = "k";
           .name("For fixed p calculates optimal q")
           .build();
       q.setParameter(K, k);
-      q.setParameter(LOG_FILE, logFile);
 
     }
 
