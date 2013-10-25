@@ -50,6 +50,7 @@ public class SumReduce extends ReduceStub {
         for (int i = 0; i < list.size(); ++i) {
             output.setField(i+1, new PactDouble(list.get(i)));
         }
+        out.collect(output);
     }
     
 }
