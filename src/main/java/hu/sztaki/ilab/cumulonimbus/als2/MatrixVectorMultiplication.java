@@ -6,6 +6,7 @@
 
 package hu.sztaki.ilab.cumulonimbus.als2;
 
+import Jama.CholeskyDecomposition;
 import Jama.Matrix;
 import eu.stratosphere.nephele.configuration.Configuration;
 import eu.stratosphere.pact.common.stubs.Collector;
@@ -44,7 +45,7 @@ public class MatrixVectorMultiplication extends MatchStub {
         }
         Matrix a = new Matrix(matrix); // X^T * x + lambda * E
         Matrix b = new Matrix(vector); // X^T * y
-        Matrix result = a.solve(b);
+        Matrix result = new CholeskyDecomposition(a).solve(b);
 
         for (int i = 0; i < k; ++i) {
             output.setField(i + 1, new PactDouble(result.get(i, 0)));
