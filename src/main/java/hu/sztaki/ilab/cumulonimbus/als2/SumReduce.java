@@ -37,6 +37,7 @@ public class SumReduce extends ReduceStub {
     public void reduce(Iterator<PactRecord> records, Collector<PactRecord> out) throws Exception {
         tmp = records.next();
         output.setField(0, tmp.getField(index, PactInteger.class));
+        list.clear();
         for(int i= 2;i < tmp.getNumFields(); ++i) {
             list.add(i-2, tmp.getField(i, PactDouble.class).getValue());
         }
