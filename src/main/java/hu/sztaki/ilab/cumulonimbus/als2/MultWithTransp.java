@@ -1,58 +1,68 @@
 package hu.sztaki.ilab.cumulonimbus.als2;
 
-import java.util.ArrayList;
-
 import eu.stratosphere.nephele.configuration.Configuration;
 import eu.stratosphere.pact.common.stubs.Collector;
 import eu.stratosphere.pact.common.stubs.MapStub;
 import eu.stratosphere.pact.common.type.PactRecord;
 import eu.stratosphere.pact.common.type.base.PactDouble;
-import eu.stratosphere.pact.common.type.base.PactList;
-import eu.stratosphere.pact.common.type.base.PactString;
+import eu.stratosphere.pact.common.type.base.PactInteger;
 
 
 /**
+ * (j,qj) -> (j,qj*transp(qj))
+ *
  * @author klorand
  */
 public class MultWithTransp extends MapStub {
 
-    public static final String FIXKEY = "SUM-QQT";
-    // initialize reusable mutable objects
+	// initialize reusable mutable objects
 	private final PactRecord outputRecord = new PactRecord();
-	private PactString emittedKey;
-    private int k;
+
+
+	static double[] transpmultiply(final double[] a, final double[] b) {
+		double[] ret = new double[a.length * b.length];
+		for (int i = 0; i < a.length; ++i) {
+			for (int j = 0; j < b.length; ++j) {
+				ret[i * (a.length-1) + j] = a[i] * b[j];
+			}
+		}
+
+		return ret;
+	}
 
 
 	@Override
 	public void open(Configuration parameters) throws Exception {
 		super.open(parameters);
-		emittedKey = new PactString(parameters.getString("emittedKey", FIXKEY));
-        k = parameters.getInteger(ALS.K, 1);
 	}
 
 
 	@Override
+    /**
+     * (j,qj) -> (j,qj*transp(qj))
+     */
 	public void map(PactRecord record, Collector<PactRecord> collector) {
+		PactInteger j = record.getField(0, PactInteger.class);
+		double[] qj = readFields(record, 1, record.getNumFields() - 1);
 
-		PactList<PactDouble> qi = record.getField(1, PactList.class);
+        double[] qjqjt = transpmultiply(qj, qj);
 
-		PactList<PactList<PactDouble>> qiqit = transpmultiply(qi, qi);
-
-		// we emit a (word, 1) pair
-		this.outputRecord.setField(0, emittedKey);
-		this.outputRecord.setField(1, qiqit);
+        this.outputRecord.setField(0, j);
+        setFields(this.outputRecord, 1, qjqjt);
 		collector.collect(this.outputRecord);
 	}
 
+    static double[] readFields(PactRecord record, int fromIndex, int count) {
+       double[] ret = new double[count];
+       for (int i=0; i<count; ++i){
+           ret[i] = record.getField(fromIndex+i,PactDouble.class).getValue();
+       }
+       return ret;
+    }
 
-	private PactList<PactList<PactDouble>> transpmultiply(final PactList<PactDouble> qi, final PactList<PactDouble> qi1) {
-		final PactList<PactList<PactDouble>> retList = new PactList<PactList<PactDouble>>(new ArrayList<PactList<PactDouble>>()) {};
-        for (int i=0; i<qi.size(); ++i) {
-           for (int j=0; j<qi1.size(); ++j) {
-
-           }
+    static void setFields(PactRecord outputRecord, int fromIndex, double[] qjqjt) {
+        for (int i=0; i<qjqjt.length; ++i) {
+            outputRecord.setField(fromIndex + i, new PactDouble(qjqjt[i]));
         }
-
-		return retList;
-	}
+    }
 }
