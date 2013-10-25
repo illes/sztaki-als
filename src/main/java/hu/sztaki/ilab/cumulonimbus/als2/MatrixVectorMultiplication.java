@@ -36,11 +36,13 @@ public class MatrixVectorMultiplication extends MatchStub {
         double[][] vector = new double[k][1];
         output.setField(0, vectorin.getField(0, PactInteger.class));
         for (int i = 0; i < k; ++i) {
-            for (int j = 0; j < k; ++j) {
-                matrix[i][j] = (i != j) ? matrixin.getField(i*k+j + 1, PactDouble.class).getValue()
-                        : matrixin.getField(i*k+j + 1, PactDouble.class).getValue() + 1e-6; // poor man's regularization
-            }
             vector[i][0] = vectorin.getField(i + 1, PactDouble.class).getValue();
+
+            for (int j = 0; j < k; ++j) {
+                matrix[i][j] = matrixin.getField(i*k+j + 1, PactDouble.class).getValue();
+            }
+            // poor man's regularization
+            matrix[i][i] += 1e-6;
         }
         Matrix a = new Matrix(matrix); // X^T * x + lambda * E
         Matrix b = new Matrix(vector); // X^T * y
