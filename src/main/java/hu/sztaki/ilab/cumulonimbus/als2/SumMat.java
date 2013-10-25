@@ -8,6 +8,7 @@ import eu.stratosphere.pact.common.stubs.ReduceStub;
 import eu.stratosphere.pact.common.type.PactRecord;
 import eu.stratosphere.pact.common.type.base.PactDouble;
 import eu.stratosphere.pact.common.type.base.PactInteger;
+import hu.sztaki.ilab.cumulonimbus.util.PactRecordHelper;
 
 
 /**
@@ -42,11 +43,15 @@ public class SumMat extends ReduceStub {
            if (summed==null) {
                summed = new double[rec.getNumFields()-2];
            }
-           for (int i=0; i<summed.length; ++i) {
-               summed[i] += rec.getField(2+i, PactDouble.class).getValue();
-           }
+           incrementSum(summed, rec);
        }
        outputRecord.setField(0, emmittedKey);
-       MultWithTransp.setFields(outputRecord, 1, summed);
+       PactRecordHelper.setFields(outputRecord, 1, summed);
+    }
+
+    static void incrementSum(double[] summed, PactRecord rec) {
+        for (int i=0; i<summed.length; ++i) {
+            summed[i] += rec.getField(2+i, PactDouble.class).getValue();
+        }
     }
 }
