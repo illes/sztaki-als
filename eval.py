@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+# usage: seq 0 10 | xargs -I{} python eval.py test_med.csv /home/illes/work/sztaki_als/sztaki-als/test.out/{p,q}.{}  | grep obj
 
 import numpy as np
 import scipy.sparse as sp
