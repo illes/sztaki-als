@@ -5,6 +5,7 @@ import Jama.Matrix;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.TreeMap;
 
 import org.apache.log4j.Logger;
 
@@ -18,7 +19,6 @@ import eu.stratosphere.pact.common.type.base.PactInteger;
 public class PIteration extends CoGroupStub {
 
   private static int k;
-  private int id_;
   private final PactRecord result_ = new PactRecord();
   private static Logger logger = Logger.getLogger(PIteration.class);
   
@@ -33,20 +33,24 @@ public class PIteration extends CoGroupStub {
       Collector<PactRecord> out) {
     double[][] matrix = new double[k][k]; // A = X^T * X + lamba * E
     double[][] vector = new double[k][1]; // b = X^T * y
-    double yTy = 0;
-    
-    Map<Integer, Double> ratings = new HashMap<Integer, Double>();
+
+    int id_ = -1;
+    TreeMap<Integer, Double> ratings = new TreeMap<Integer, Double>(); //itemid -> double
     while (matrixElements.hasNext()) {
       PactRecord element = matrixElements.next();
       id_ = element.getField(0, PactInteger.class).getValue();
       ratings.put(element.getField(1, PactInteger.class).getValue(), 
           element.getField(2, PactDouble.class).getValue());
     }
+    if (id_ < 0)
+    	throw new IllegalStateException();
     
+    double _sumRatings = 0;
     while (q.hasNext()) {
       PactRecord column = q.next();
-      id_ = column.getField(0, PactInteger.class).getValue();
+      //id_ = column.getField(0, PactInteger.class).getValue();
       double rating = ratings.get(column.getField(1, PactInteger.class).getValue());
+      _sumRatings += rating;
       for (int i = 0; i < k; ++i) {
         for (int j = 0; j < k; ++j) {
           matrix[i][j] += column.getField(i + 2, PactDouble.class).getValue() * 
@@ -54,16 +58,24 @@ public class PIteration extends CoGroupStub {
         }
         vector[i][0] += rating * column.getField(i + 2, PactDouble.class).getValue();
       }
-      
-      for (int i = 0; i < k; i++) yTy += rating * rating;
+    }
+    if (id_ == 0) {
+    	logger.warn("Got ratings sum: " + _sumRatings + " count: " + ratings.size());
+    	logger.warn(ratings.values());
     }
 
     // poor man's regularization
-    for (int i = 0; i < k; ++i) matrix[i][i] += 1e-6; // lambda
+    for (int i = 0; i < k; ++i) matrix[i][i] += hu.sztaki.ilab.cumulonimbus.als2.ALS.LAMBDA;
     
     Matrix a = new Matrix(matrix); // X^T * x + lambda * E
     Matrix b = new Matrix(vector); // X^T * y
     Matrix result = a.solve(b);
+
+    if (id_ == 0) {
+	    logger.warn("A:\t" + a.toString() + " " + matrix[0][0]);
+	    logger.warn("B:\t" + b.toString() + " " + vector[0][0]);
+	    logger.warn("result:\t" + result.toString() + " " + result.get(0, 0));
+    }
     
 //  double errorSquare = result.transpose().times(a.times(result)).get(0, 0) - 2* result.transpose().times(b).get(0, 0) + yTy; // wT * A * w  - 2 * wT * b + yT*y
     

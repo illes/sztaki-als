@@ -15,6 +15,7 @@ public class DoubleReaderFinal implements ByteReader {
 
   @Override
   public void start(PactRecord record, int index) {
+    positive = true;
     intValue = 0;
     fracValue = 0;
     fracChars = 0;

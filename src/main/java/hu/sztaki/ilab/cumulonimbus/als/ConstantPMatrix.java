@@ -8,7 +8,7 @@ import eu.stratosphere.pact.common.type.PactRecord;
 import eu.stratosphere.pact.common.type.base.PactDouble;
 import eu.stratosphere.pact.common.type.base.PactInteger;
 
-public class ConstantMatrix extends ReduceStub {
+public class ConstantPMatrix extends ReduceStub {
 
   private final PactRecord vector = new PactRecord();
   private static final PactDouble ONE = new PactDouble(1.0);
@@ -17,7 +17,7 @@ public class ConstantMatrix extends ReduceStub {
   public void reduce(Iterator<PactRecord> matrixElements, Collector<PactRecord> out)
       throws Exception {
     PactRecord element = matrixElements.next();
-    vector.setField(0, element.getField(1, PactInteger.class));
+    vector.setField(0, element.getField(0, PactInteger.class));
     vector.setField(1, ONE);
     out.collect(vector);
   }

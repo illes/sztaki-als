@@ -59,7 +59,7 @@ public class QIteration extends CoGroupStub {
     }
 
     // poor man's regularization
-    for (int i = 0; i < k; ++i) matrix[i][i] += 1e-6;
+    for (int i = 0; i < k; ++i) matrix[i][i] += hu.sztaki.ilab.cumulonimbus.als2.ALS.LAMBDA;
     
     Matrix a = new Matrix(matrix); // X^T * x + lambda * E
     Matrix b = new Matrix(vector); // X^T * y

@@ -3,6 +3,8 @@ package hu.sztaki.ilab.cumulonimbus.als2;
 import java.util.ArrayList;
 import java.util.Collection;
 
+import hu.sztaki.ilab.cumulonimbus.als.ConstantPMatrix;
+import hu.sztaki.ilab.cumulonimbus.als.ConstantQMatrix;
 import hu.sztaki.ilab.cumulonimbus.als.MultiplyVector;
 import hu.sztaki.ilab.cumulonimbus.als.PIteration;
 import hu.sztaki.ilab.cumulonimbus.als.QIteration;
@@ -27,6 +29,8 @@ import eu.stratosphere.pact.common.type.base.PactInteger;
 import eu.stratosphere.pact.generic.contract.Contract;
 
 public class ALS implements PlanAssembler, PlanAssemblerDescription {
+	
+	public static double LAMBDA = 0;
 
 	public static final String K = "k";
 	public static final String INDEX = "index";
@@ -50,48 +54,54 @@ public class ALS implements PlanAssembler, PlanAssemblerDescription {
 		// for reading q from file
 		int qSeed = (args.length > 5 ? Integer.parseInt(args[5]) : 42);
 
-		/*
-		 * Contract q = (Contract) qSource;
-		 * 
-		 * //for creating the constant 1 matrix //only works for k = 1 /* Contract q =
-		 * ReduceContract .builder(ConstantMatrix.class, PactInteger.class, 1) .input(matrixSource)
-		 * .name("Create q as a constant 1 matrix") .build();
-		 */
+//		 Contract q = (Contract) qSource;
+		Collection<GenericDataSink> outputs = new ArrayList<GenericDataSink>();
 
-		// for creating a random matrix
-		Contract q = ReduceContract.builder(PseudoRandomMatrix.class, PactInteger.class, 1).input(matrixSource).name("Create q as a random matrix").build();
-		q.setParameter(K, k);
-		q.setParameter("seed", qSeed);
-
-		Contract p = null;
+		Contract p;
+		Contract q;
+		if (true) {
+			logger.warn("for creating the constant 1 matrix, only works for k = 1");
+			if (k != 1)
+				throw new IllegalArgumentException("only works for k = 1");
+			q = ReduceContract.builder(ConstantQMatrix.class, PactInteger.class, 1).input(matrixSource).name("Create q as a constant 1 matrix").build();
+			p = ReduceContract.builder(ConstantPMatrix.class, PactInteger.class, 0).input(matrixSource).name("Create p as a constant 1 matrix").build();
+			outputs.add(createFileDataSink(output + "/p.0", p, "ALS P output init", k, false));
+			outputs.add(createFileDataSink(output + "/q.0", q, "ALS Q output init", k, false));
+		} else {
+			logger.info("creating a pseudo random matrix");
+			// for creating a random matrix
+			q = ReduceContract.builder(PseudoRandomMatrix.class, PactInteger.class, 1 /* i */).input(matrixSource).name("Create q as a random matrix").build();
+			q.setParameter(K, k);
+			q.setParameter("seed", qSeed);
+			/* i, f_random */
+			p = null; // will be computed
+		}
 
 		FileDataSink pOut = null;
-		Collection<GenericDataSink> outputs = new ArrayList<GenericDataSink>();
 		for (int i = 0; i < iteration; ++i) {
 
-			MatchContract multipliedQ = MatchContract.builder(MultiplyVector.class, PactInteger.class, 1, 0).input1(matrixSource).input2(q)
+			MatchContract multipliedQ = MatchContract.builder(MultiplyVector.class, PactInteger.class, 1 /*i*/, 0 /*i*/).input1(matrixSource).input2(q)
 					.name("Sends the columns of q with multiple keys)").build();
-			multipliedQ.setParameter(INDEX, 1);
 
-			p = CoGroupContract.builder(PIteration.class, PactInteger.class, 0, 0).input1(matrixSource).input2(multipliedQ)
+			p = CoGroupContract.builder(PIteration.class, PactInteger.class, 0 /*u*/, 0 /*u*/).input1(matrixSource).input2(multipliedQ)
 					.name("For fixed q calculates optimal p").build();
 			p.setParameter(K, k);
+			/* u, f_u */
 
-			outputs.add(createFileDataSink(output + "/p." + i, p, "ALS P output " + i, k));
+			outputs.add(createFileDataSink(output + "/p." + (i+1), p, "ALS P output " + i, k, false));
 
-			MatchContract multipliedP = MatchContract.builder(MultiplyVector.class, PactInteger.class, 0, 0).input1(matrixSource).input2(p)
+			MatchContract multipliedP = MatchContract.builder(MultiplyVector.class, PactInteger.class, 0 /*u*/, 0 /*u*/).input1(matrixSource).input2(p)
 					.name("sends the rows of p with multiple keys").build();
-			multipliedP.setParameter(INDEX, 0);
 
-			q = CoGroupContract.builder(QIteration.class, PactInteger.class, 1, 1).input1(matrixSource).input2(multipliedP)
+			q = CoGroupContract.builder(QIteration.class, PactInteger.class, 1 /*i*/, 1 /*i*/).input1(matrixSource).input2(multipliedP)
 					.name("For fixed p calculates optimal q").build();
 			q.setParameter(K, k);
 
-			outputs.add(createFileDataSink(output + "/q." + i, q, "ALS Q output " + i, k));
+			outputs.add(createFileDataSink(output + "/q." + (i+1), q, "ALS Q output " + i, k, false));
 		}
 
-		outputs.add(createFileDataSink(output + "/p", p, "ALS P output", k));
-		outputs.add(createFileDataSink(output + "/q", q, "ALS Q output", k));
+		outputs.add(createFileDataSink(output + "/p", p, "ALS P output", k, false));
+		outputs.add(createFileDataSink(output + "/q", q, "ALS Q output", k, false));
 
 		Plan plan = new Plan(outputs, "ALS");
 		plan.setDefaultParallelism(noSubTasks);
@@ -113,14 +123,14 @@ public class ALS implements PlanAssembler, PlanAssemblerDescription {
 		executor.stop();
 	}
 
-	private FileDataSink createFileDataSink(String filePath, Contract input, String name, int k) {
+	private static FileDataSink createFileDataSink(String filePath, Contract input, String name, int k, boolean omitId) {
 		FileDataSink out = new FileDataSink(RecordOutputFormat.class, filePath, input, name);
-		RecordOutputFormat.configureRecordFormat(out).recordDelimiter('\n').fieldDelimiter(' ').lenient(true).field(PactInteger.class, 0);
+		RecordOutputFormat.configureRecordFormat(out).recordDelimiter('\n').fieldDelimiter(' ').lenient(true);
+		if (!omitId) RecordOutputFormat.configureRecordFormat(out).field(PactInteger.class, 0);
 
 		for (int j = 0; j < k; ++j) {
 			RecordOutputFormat.configureRecordFormat(out).field(PactDouble.class, j + 1);
 		}
-		
 		return out;
 	}
 }

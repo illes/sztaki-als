@@ -14,22 +14,23 @@ public class PseudoRandomMatrix extends ReduceStub {
 
   private static int k;
   private final PactRecord vector = new PactRecord();
-  private Random RANDOM = null;
+  private long seed = 42;
   
   @Override
   public void open(Configuration conf) {
 	    k = conf.getInteger(ALS.K, 1);
-	    int seed = conf.getInteger("seed", 42);
-	    RANDOM = new Random(seed);
+	    seed = conf.getInteger("seed", 42);
   }
 
   @Override
   public void reduce(Iterator<PactRecord> elements, Collector<PactRecord> out)
       throws Exception {
     PactRecord element = elements.next();
-    vector.setField(0, element.getField(1, PactInteger.class));
+    PactInteger _id = element.getField(1, PactInteger.class);
+    vector.setField(0, _id);
+    Random random = new Random(seed ^ _id.getValue());
     for (int i = 0; i < k; ++i) {
-      vector.setField(i + 1, new PactDouble(1 + RANDOM.nextDouble() / 2));
+      vector.setField(i + 1, new PactDouble(random.nextDouble() - 0.5));
     }
     out.collect(vector);
   }
