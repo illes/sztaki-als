@@ -49,6 +49,8 @@ def loaddense(fname):
     ids_inv = np.empty(ids.shape, int)
     for idx, id in enumerate(ids):
         ids_inv[id] = idx
+    print ids
+    print ids_inv
     data = nda[:,1:]
     return data[ids_inv]
     

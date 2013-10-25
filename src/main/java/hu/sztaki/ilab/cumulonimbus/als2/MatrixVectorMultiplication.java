@@ -23,7 +23,6 @@ import java.util.List;
  */
 public class MatrixVectorMultiplication extends MatchStub {
     private final PactRecord output = new PactRecord();
-    private final List<Double> list = new ArrayList<Double>();
     private int k;
 
     @Override

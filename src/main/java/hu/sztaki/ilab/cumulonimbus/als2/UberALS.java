@@ -60,7 +60,7 @@ public class UberALS implements PlanAssembler, PlanAssemblerDescription {
 
 		Contract p;
 		Contract q;
-		if (true) {
+		if (false) {
 			logger.warn("for creating the constant 1 matrix, only works for k = 1");
 			if (k != 1)
 				throw new IllegalArgumentException("only works for k = 1");
@@ -84,12 +84,12 @@ public class UberALS implements PlanAssembler, PlanAssemblerDescription {
                                 .input1(q)
                                 .input2(matrixSource)
 				.name("Make the multiplication with q "+i).build();
-
+                        
 			ReduceContract rowsum = ReduceContract.builder(SumReduce.class, PactInteger.class, 0)
                                 .input(multiplicationRQ)
                                 .name("Sum the rows. "+i).build();
 			rowsum.setParameter(INDEX, 0);
-                        
+                                                
                         ///////// q*q
                         MapContract qq = MapContract.builder(MultWithTransp.class)
                                 .input(q)
@@ -103,7 +103,7 @@ public class UberALS implements PlanAssembler, PlanAssemblerDescription {
                         ReduceContract summatq = ReduceContract.builder(SumMat.class, PactInteger.class, 0)
                                 .input(matchrq)
                                 .name("Summat q "+i).build();
-                        summatq.setParameter(INDEX, 1);
+                        summatq.setParameter(INDEX, 0);
                         
                         p = MatchContract.builder(MatrixVectorMultiplication.class, PactInteger.class, 0, 0)
                                 .input1(summatq)
@@ -136,7 +136,7 @@ public class UberALS implements PlanAssembler, PlanAssemblerDescription {
                         ReduceContract summatp = ReduceContract.builder(SumMat.class, PactInteger.class, 1)
                                 .input(matchrp)
                                 .name("Summat p "+i).build();
-                        summatp.setParameter(INDEX, 0);
+                        summatp.setParameter(INDEX, 1);
                         
                         q = MatchContract.builder(MatrixVectorMultiplication.class, PactInteger.class, 0, 0)
                                 .input1(summatp)
