@@ -22,9 +22,8 @@ import java.util.List;
  */
 public class SumReduce extends ReduceStub {
     private final PactRecord output = new PactRecord();
-    private double sum;
     private PactRecord tmp;
-    private List<Double> list = new ArrayList<Double>();
+    private final List<Double> list = new ArrayList<Double>();
 //    private int k;
     private int index;
 
