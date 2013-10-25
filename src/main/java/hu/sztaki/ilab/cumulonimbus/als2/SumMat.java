@@ -47,6 +47,7 @@ public class SumMat extends ReduceStub {
        }
        outputRecord.setField(0, emmittedKey);
        PactRecordHelper.setFields(outputRecord, 1, summed);
+       out.collect(outputRecord);
     }
 
     static void incrementSum(double[] summed, PactRecord rec) {
