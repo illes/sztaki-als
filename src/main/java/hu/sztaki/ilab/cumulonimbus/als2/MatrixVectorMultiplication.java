@@ -37,7 +37,7 @@ public class MatrixVectorMultiplication extends MatchStub {
         double[][] vector = new double[k][1];
         output.setField(0, vectorin.getField(0, PactInteger.class));
         for (int i = 0; i < k; ++i) {
-            for (int j = 0; j < k; ++i) {
+            for (int j = 0; j < k; ++j) {
                 matrix[i][j] = (i != j) ? matrixin.getField(i*k+j + 1, PactDouble.class).getValue()
                         : matrixin.getField(i*k+j + 1, PactDouble.class).getValue() + 1e-6; // poor man's regularization
             }
