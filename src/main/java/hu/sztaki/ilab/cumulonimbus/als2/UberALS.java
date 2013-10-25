@@ -83,32 +83,32 @@ public class UberALS implements PlanAssembler, PlanAssemblerDescription {
 			MatchContract multiplicationRQ = MatchContract.builder(MatrixMultiplication.class, PactInteger.class, 0 /*j*/, 1 /*j*/)
                                 .input1(q)
                                 .input2(matrixSource)
-				.name("Make the multiplication with q").build();
+				.name("Make the multiplication with q "+i).build();
 
 			ReduceContract rowsum = ReduceContract.builder(SumReduce.class, PactInteger.class, 0)
                                 .input(multiplicationRQ)
-                                .name("Sum the rows.").build();
+                                .name("Sum the rows. "+i).build();
 			rowsum.setParameter(INDEX, 0);
                         
                         ///////// q*q
                         MapContract qq = MapContract.builder(MultWithTransp.class)
                                 .input(q)
-                                .name("q*q").build();
+                                .name("q*q " + i).build();
                         
                         MatchContract matchrq = MatchContract.builder(MatchTranspWithR.class , PactInteger.class, 0, 1)
                                 .input1(qq)
                                 .input2(matrixSource)
-                                .name("Match R q").build();
+                                .name("Match R q " + i).build();
                         
                         ReduceContract summatq = ReduceContract.builder(SumMat.class, PactInteger.class, 0)
                                 .input(matchrq)
-                                .name("Summat q").build();
+                                .name("Summat q "+i).build();
                         summatq.setParameter(INDEX, 1);
                         
                         p = MatchContract.builder(MatrixVectorMultiplication.class, PactInteger.class, 0, 0)
                                 .input1(summatq)
                                 .input2(rowsum)
-                                .name("Make p").build();
+                                .name("Make p "+i).build();
                         p.setParameter(K, k);
 
 			outputs.add(createFileDataSink(output + "/p." + (i+1), p, "ALS P output " + i, k, false));
@@ -116,32 +116,32 @@ public class UberALS implements PlanAssembler, PlanAssemblerDescription {
 			MatchContract multiplicationRP = MatchContract.builder(MatrixMultiplication.class, PactInteger.class, 0 /*j*/, 0 /*j*/)
                                 .input1(p)
                                 .input2(matrixSource)
-				.name("Make the multiplication with p").build();
+				.name("Make the multiplication with p "+i).build();
 
 			ReduceContract columsum = ReduceContract.builder(SumReduce.class, PactInteger.class, 1)
                                 .input(multiplicationRP)
-                                .name("Sum the colums.").build();
+                                .name("Sum the colums. "+i).build();
 			columsum.setParameter(INDEX, 1);
                         
                         ///////// p*p
                         MapContract pp = MapContract.builder(MultWithTransp.class)
                                 .input(p)
-                                .name("p*p").build();
+                                .name("p*p "+i).build();
                         
                         MatchContract matchrp = MatchContract.builder(MatchTranspWithR.class , PactInteger.class, 0, 0)
                                 .input1(pp)
                                 .input2(matrixSource)
-                                .name("Match R p").build();
+                                .name("Match R p "+i).build();
                         
                         ReduceContract summatp = ReduceContract.builder(SumMat.class, PactInteger.class, 1)
                                 .input(matchrp)
-                                .name("Summat p").build();
+                                .name("Summat p "+i).build();
                         summatp.setParameter(INDEX, 0);
                         
                         q = MatchContract.builder(MatrixVectorMultiplication.class, PactInteger.class, 0, 0)
                                 .input1(summatp)
                                 .input2(columsum)
-                                .name("Make p").build();
+                                .name("Make p "+i).build();
                         q.setParameter(K, k);
 
 			outputs.add(createFileDataSink(output + "/q." + (i+1), q, "ALS Q output " + i, k, false));
