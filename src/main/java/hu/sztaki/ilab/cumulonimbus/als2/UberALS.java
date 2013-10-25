@@ -17,6 +17,7 @@ import eu.stratosphere.pact.common.contract.CoGroupContract;
 import eu.stratosphere.pact.common.contract.FileDataSink;
 import eu.stratosphere.pact.common.contract.FileDataSource;
 import eu.stratosphere.pact.common.contract.GenericDataSink;
+import eu.stratosphere.pact.common.contract.MapContract;
 import eu.stratosphere.pact.common.contract.MatchContract;
 import eu.stratosphere.pact.common.contract.ReduceContract;
 import eu.stratosphere.pact.common.io.DelimitedInputFormat;
@@ -77,25 +78,71 @@ public class UberALS implements PlanAssembler, PlanAssemblerDescription {
 			p = null; // will be computed
 		}
 
-		FileDataSink pOut = null;
 		for (int i = 0; i < iteration; ++i) {
 
-			MatchContract multipliedQ = MatchContract.builder(MultiplyVector.class, PactInteger.class, 1 /*i*/, 0 /*i*/).input1(matrixSource).input2(q)
-					.name("Sends the columns of q with multiple keys)").build();
+			MatchContract multiplicationRQ = MatchContract.builder(MatrixMultiplication.class, PactInteger.class, 0 /*j*/, 1 /*j*/)
+                                .input1(q)
+                                .input2(matrixSource)
+				.name("Make the multiplication with q").build();
 
-			p = CoGroupContract.builder(PIteration.class, PactInteger.class, 0 /*u*/, 0 /*u*/).input1(matrixSource).input2(multipliedQ)
-					.name("For fixed q calculates optimal p").build();
-			p.setParameter(K, k);
-			/* u, f_u */
+			ReduceContract rowsum = ReduceContract.builder(SumReduce.class, PactInteger.class, 0)
+                                .input(multiplicationRQ)
+                                .name("Sum the rows.").build();
+			rowsum.setParameter(INDEX, 0);
+                        
+                        ///////// q*q
+                        MapContract qq = MapContract.builder(MultWithTransp.class)
+                                .input(q)
+                                .name("q*q").build();
+                        
+                        MatchContract matchrq = MatchContract.builder(MatchTranspWithR.class , PactInteger.class, 0, 1)
+                                .input1(qq)
+                                .input2(matrixSource)
+                                .name("Match R q").build();
+                        
+                        ReduceContract summatq = ReduceContract.builder(SumMat.class, PactInteger.class, 0)
+                                .input(matchrq)
+                                .name("Summat q").build();
+                        summatq.setParameter(INDEX, 1);
+                        
+                        p = MatchContract.builder(MatrixVectorMultiplication.class, PactInteger.class, 0, 0)
+                                .input1(summatq)
+                                .input2(rowsum)
+                                .name("Make p").build();
+                        p.setParameter(K, k);
 
 			outputs.add(createFileDataSink(output + "/p." + (i+1), p, "ALS P output " + i, k, false));
 
-			MatchContract multipliedP = MatchContract.builder(MultiplyVector.class, PactInteger.class, 0 /*u*/, 0 /*u*/).input1(matrixSource).input2(p)
-					.name("sends the rows of p with multiple keys").build();
+			MatchContract multiplicationRP = MatchContract.builder(MatrixMultiplication.class, PactInteger.class, 0 /*j*/, 0 /*j*/)
+                                .input1(p)
+                                .input2(matrixSource)
+				.name("Make the multiplication with p").build();
 
-			q = CoGroupContract.builder(QIteration.class, PactInteger.class, 1 /*i*/, 1 /*i*/).input1(matrixSource).input2(multipliedP)
-					.name("For fixed p calculates optimal q").build();
-			q.setParameter(K, k);
+			ReduceContract columsum = ReduceContract.builder(SumReduce.class, PactInteger.class, 1)
+                                .input(multiplicationRP)
+                                .name("Sum the colums.").build();
+			columsum.setParameter(INDEX, 1);
+                        
+                        ///////// p*p
+                        MapContract pp = MapContract.builder(MultWithTransp.class)
+                                .input(p)
+                                .name("p*p").build();
+                        
+                        MatchContract matchrp = MatchContract.builder(MatchTranspWithR.class , PactInteger.class, 0, 0)
+                                .input1(pp)
+                                .input2(matrixSource)
+                                .name("Match R p").build();
+                        
+                        ReduceContract summatp = ReduceContract.builder(SumMat.class, PactInteger.class, 1)
+                                .input(matchrp)
+                                .name("Summat p").build();
+                        summatp.setParameter(INDEX, 0);
+                        
+                        q = MatchContract.builder(MatrixVectorMultiplication.class, PactInteger.class, 0, 0)
+                                .input1(summatp)
+                                .input2(columsum)
+                                .name("Make p").build();
+                        q.setParameter(K, k);
 
 			outputs.add(createFileDataSink(output + "/q." + (i+1), q, "ALS Q output " + i, k, false));
 		}
